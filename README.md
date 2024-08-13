@@ -35,32 +35,31 @@ If you do not have an AWS account, create one as you will need it for configurin
 Once you have the AWS <b>Access Key</b> and <b>Secret Access key</b>, then you can proceed to using this tool.
 # Usage
 ```console
-usage: Mitty [-h] -k KEY -s SECRET [-r REGION] [-n COUNT] [-c] repository
+usage: Mitty [-h] [-t REPOSITORY] -k KEY -s SECRET [-r REGION] [-n COUNT] [-c]
 
 A command-line tool for brute-forcing commit IDs via FireProx.
 
-positional arguments:
-  repository            The target GitHub repository in the format of: "USER/REPO" (e.g., e-nzym3/mitty)
-
 options:
   -h, --help            show this help message and exit
-  -k KEY, --key KEY     AWS access key for FireProx
+  -t REPOSITORY, --repository REPOSITORY
+                        The target GitHub repository in the format "USER/REPO" (e.g., e-nzym3/mitty)
+  -k KEY, --key KEY     AWS key for FireProx
   -s SECRET, --secret SECRET
-                        AWS secret access key for FireProx
+                        AWS secret key for FireProx
   -r REGION, --region REGION
                         AWS region to deploy gateways in (default = us-east-1)
   -n COUNT, --count COUNT
                         Number of concurrent streams use (default = 1)
-  -c, --cleanup         Delete APIs
+  -c, --cleanup         Cleanup APIs from AWS
 ```
 ## Examples
 ### Starting Brute Force
 ```console
-./mitty -k "AIKAxxxxxxxxxxxxxxxx" -s "xxxxxxxxxxxxxxxxxxxxxxxx" -r us-east-1 -n 10 e-nzym3/mitty
+./mitty -k "AIKAxxxxxxxxxxxxxxxx" -s "xxxxxxxxxxxxxxxxxxxxxxxx" -r us-east-1 -n 10 -t "e-nzym3/mitty"
 ```
 ### Cleaning up API Gateways
 ```console
-./mitty -c -r us-east-1
+./mitty -k "AIKAxxxxxxxxxxxxxxxx" -s "xxxxxxxxxxxxxxxxxxxxxxxx" -c -r us-east-1
 ```
 **DISCLAIMER: MITTY WILL REMOVE ALL API GATEWAYS FROM SPECIFIED REGION. MAKE SURE YOU DO NOT HAVE ANY IMPORTANT GATEWAYS ON YOUR ACCOUNT!!!**
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from utils.fire import FireProx
-import argparse, requests, concurrent.futures, time, threading
+import argparse, requests, concurrent.futures, time, threading,sys
 from collections import defaultdict
 from tqdm import tqdm
 
@@ -16,6 +16,7 @@ reset = '\033[0m'
 lightred = '\033[91m'
 blue = '\033[34m'
 lightgreen = '\033[92m'
+gold = '\033[33m'
 
 def arg_parser():
     # Import globals and regions comparison table
@@ -28,23 +29,29 @@ def arg_parser():
 		]
 
     parser = argparse.ArgumentParser(prog="Mitty", description="A command-line tool for brute-forcing commit IDs via FireProx.", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("repository", type=str, help="The target GitHub repository in the format \"USER/REPO\" (e.g., e-nzym3/mitty)")
+    parser.add_argument("-t", "--repository", type=str, required=False, help="The target GitHub repository in the format \"USER/REPO\" (e.g., e-nzym3/mitty)")
     parser.add_argument("-k", "--key", type=str, required=True, help="AWS key for FireProx")
     parser.add_argument("-s", "--secret", type = str, required = True, help = "AWS secret key for FireProx")
     parser.add_argument("-r", "--region", type = str, required = False, default = "us-east-1", help = "AWS region to deploy gateways in (default = us-east-1)")
-    parser.add_argument("-n", "--count", type = int, required = False, default = 1, help = "Number of concurrent streams use (default = 1)")
-    parser.add_argument("-c", "--cleanup", action = "store_true", default = False, help = "Cleanup APIs")
+    parser.add_argument("-n", "--count", type = int, required = False, default = 5, help = "Number of concurrent streams use (default = 5)")
+    parser.add_argument("-c", "--cleanup", action = "store_true", default = False, help = "Cleanup APIs from AWS")
 
     # Process args to appropriate global variables
     args = parser.parse_args()
     target_repo = f"https://github.com/{args.repository}"
     aws_key = args.key
     aws_secret = args.secret
+
     if args.region not in regions:
-        print(f"{lightred}[!] Supplied region \"{args.region}\" is not valid! Please select one of the following:{reset}")
+        print(f"{lightred}[!] Supplied region \"{args.region}\" is not valid! Please select one of the following:")
         print(", ".join(regions))
+        print(f"{reset}")
     else:
         aws_region = args.region
+    
+    if args.cleanup == False and not args.repository:
+        parser.error(f"{lightred}[!] --repository is required if --cleanup is not set")
+
     return args
 
 
@@ -82,15 +89,17 @@ def load_apis(region, url, count):
 
 
 def destroy_apis(region):
-    print(f"{blue}[*] Destroying APIs{reset}")
+    print(f"{blue}[*] Destroying APIs:{reset}")
     args, helpstr = fireprox_args("list", region)
     fp = FireProx(args, helpstr)
     active_apis = fp.list_api()
-
+    
+    pbar = tqdm(total=len(active_apis), desc="Destroying APIs", unit = " apis", position=0, leave=True)
     for a in active_apis:
         result = fp.delete_api(a['id'])
         success = 'Success!' if result else 'Failed!'
-        print(f'{lightgreen}[+] Deleting {a["id"]} => {success}{reset}')
+        tqdm.write(f'{lightgreen}[+] Destroying {a["id"]} => {success}{reset}')
+        pbar.update(1)
 
 
 def request_handler(count):
@@ -123,7 +132,7 @@ def request_handler(count):
         # Move to the next bucket
         start = end
     print(f"\n{blue}[*] Starting Brute Force:{reset}")
-    pbar = tqdm(total=total_combinations, unit=" commits", desc="Checking Commits", position=0, leave=True)
+    pbar = tqdm(total=total_combinations, unit=" requests", desc="Checking Commits", position=0, leave=True)
 
     ## Generate HTTP requests through each "api" through multithreading for each bucket
     def fetch_data(api, bucket):
@@ -134,7 +143,7 @@ def request_handler(count):
                 with lock:  # Acquire the lock before writing to the results dictionary
                     results[commit_hash].append(response.status_code)
                     if response.status_code == 200:
-                        tqdm.write(f"{lightgreen}[+] Commit Found: {target_repo}/commit/{commit_hash}{reset}")
+                        tqdm.write(f"{gold}[+] Commit Found: {target_repo}/commit/{commit_hash}{reset}")
             except requests.exceptions.RequestException as e:
                 with lock:  # Acquire the lock before writing to the results dictionary
                     results[commit_hash].append(f"Error: {str(e)}")
