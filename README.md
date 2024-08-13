@@ -6,15 +6,15 @@
 </p>
 <hr>
 
-Mitty is a utility that bruteforces Github's commit hash (the 4-character format). Based on a [Truffle Security](https://trufflesecurity.com/blog/anyone-can-access-deleted-and-private-repo-data-github) article, it is possible to find dereferenced commits for a repository. Github commits can be accessed by using the first 4 characters of a commit hash (e.g., https://github.com/e-nzym3/mitty/commit/a3fc). As such, the utility focuses on performing 65,536 requests which cover the whole hex character space for a 4-character string (0000 -> ffff).
+Mitty is a utility that bruteforces Github's commit hash (the 4-character format). Based on a [Truffle Security](https://trufflesecurity.com/blog/anyone-can-access-deleted-and-private-repo-data-github) article, it is possible to access dereferenced commits for a repository as long as you know the commit hash. Github commits can be accessed by using the first 4 characters of a commit hash (e.g., https://github.com/e-nzym3/mitty/commit/a3fc). As such, the utility focuses on performing 65,536 requests which cover the whole hex character space for a 4-character string (0000 -> ffff).
 <br>
 <br>
-Since Github will prevent excessive consecutive connections from a single IP source, Mitty is designed to utilize [FireProx](https://github.com/ustayready/fireprox), a utility created for automating deployment of AWS API Gateways through which web requests can be proxied. AWS API Gateways will assign a different source IP for each request generated, allowing us to easily rotate our source IP, bypassing the Github protections.
+Since Github will prevent excessive consecutive connections from a single IP source, Mitty is designed to utilize [FireProx](https://github.com/ustayready/fireprox), a utility created for automating deployment of AWS API Gateways through which web requests can be proxied. AWS API Gateways will assign a different source IP for each generated request, allowing us to easily rotate our source IP, bypassing the Github protections.
 <br>
 <br>
 <b>Note: the tool does require an AWS Console account. The API Gateways will usually be free unless you end up sending million+ requests</b> ([Gateway API Pricing Page](https://aws.amazon.com/api-gateway/pricing/)).
 # Credits
-- [knavesec](https://github.com/knavesec) - Most of the FireProx interaction code is based on [CredMaster](https://github.com/knavesec/CredMaster)'s functionality. Also README blog info.
+- [knavesec](https://github.com/knavesec) - Most of the FireProx interaction code is based on [CredMaster](https://github.com/knavesec/CredMaster)'s functionality. Also snagged some README blog info.
 - ChatGPT and Amazon Q - obviously...
 - Microsoft Designer AI - logo
 
@@ -67,3 +67,4 @@ options:
 - Clean-up Code Formatting
 - Clean-up Fire.py to only include logic that's required
 - Add logic that destroys APIs on CTRL+C, just like in CredMaster
+- Add output to log file logic
