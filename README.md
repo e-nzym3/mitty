@@ -64,3 +64,7 @@ options:
 ```
 **DISCLAIMER: MITTY WILL REMOVE ALL API GATEWAYS FROM SPECIFIED REGION. MAKE SURE YOU DO NOT HAVE ANY IMPORTANT GATEWAYS ON YOUR ACCOUNT!!!**
 
+# To Do
+- Clean-up Code Formatting
+- Clean-up Fire.py to only include logic that's required
+- Add logic that destroys APIs on CTRL+C, just like in CredMaster
