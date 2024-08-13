@@ -55,11 +55,11 @@ options:
 ```
 ## Examples
 ### Starting Brute Force
-```
+```console
 ./mitty -k AIKAxxxxxxxxxxxxxxxx -s xxxxxxxxxxxxxxxxxxxxxxxx -r us-east-1 -n 10 e-nzym3/mitty
 ```
 ### Cleaning up API Gateways
-```
+```console
 ./mitty -c -r us-east-1
 ```
 **DISCLAIMER: MITTY WILL REMOVE ALL API GATEWAYS FROM SPECIFIED REGION. MAKE SURE YOU DO NOT HAVE ANY IMPORTANT GATEWAYS ON YOUR ACCOUNT!!!**
