@@ -55,6 +55,7 @@ options:
 <br>
 <br>
 _To Do: Add logic to exclude/include commits to forks and to differentiate between dereferenced and normal commits_
+
 ## Logging
 Logging is configured to run upon successful completion of the script. The script will populate a log file in the current directory. Log file name is in the format of `out_mitty_<target-repo>_<date>.log`.
 
