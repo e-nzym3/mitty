@@ -67,4 +67,4 @@ options:
 - Clean-up Code Formatting
 - Clean-up Fire.py to only include logic that's required
 - Add logic that destroys APIs on CTRL+C, just like in CredMaster
-- Add output to log file logic
+- Add logic to exclude or include fork commits
