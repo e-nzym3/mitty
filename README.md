@@ -52,10 +52,12 @@ options:
                         Number of concurrent streams use (default = 1)
   -c, --cleanup         Cleanup APIs from AWS
 ```
-The tool will find either "Interesting" or standard commits. Interesting commits (as it currently stands) are any commit that display the "This commit does not belong to any branch on this repository, and may belong to a fork outside of the repository" message when accessed. While this may include commits to forks, it should narrow down potential results.
 <br>
 <br>
-_To Do: Add logic to exclude/include commits to forks._
+_To Do: Add logic to exclude/include commits to forks and to differentiate between dereferenced and normal commits_
+## Logging
+Logging is configured to run upon successful completion of the script. The script will populate a log file in the current directory. Log file name is in the format of `out_mitty_<target-repo>_<date>.log`.
+
 ## Examples
 ### Starting Brute Force
 ```console
@@ -72,3 +74,4 @@ _To Do: Add logic to exclude/include commits to forks._
 - Clean-up Fire.py to only include logic that's required
 - Add logic that destroys APIs on CTRL+C, just like in CredMaster
 - Add logic to exclude or include fork commits
+- Add logic to check for pre-existing API gateways and re-use them if needed. If not enough pre-existing ones exist, create n of them until they match the required number.

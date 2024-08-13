@@ -18,6 +18,18 @@ blue = '\033[34m'
 lightgreen = '\033[92m'
 gold = '\033[33m'
 
+### Functions ###
+def check_repo(url):
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            return True
+        else:
+            return False
+    except requests.exceptions.RequestException:
+        return False
+    
+
 def arg_parser():
     # Import globals and regions comparison table
     global target_repo, aws_key, aws_secret, aws_region
@@ -78,6 +90,7 @@ def create_api(region, url):
     fp = FireProx(args, help_str)
     resource_id, proxy_url = fp.create_api(url)
     return { "api_gateway_id" : resource_id, "proxy_url" : proxy_url, "region" : region }
+
 
 def load_apis(region, url, count):
     apis = []
@@ -140,18 +153,11 @@ def request_handler(count):
             url = f"{api['proxy_url']}commit/{commit_hash}"
             try:
                 response = requests.get(url)
-                deref_commit = False
                 with lock:
-                    if "This commit does not belong to any branch on this repository" in response.text:
-                        deref_commit = True
+                    if response.status_code == 200:
+                        tqdm.write(f"{gold}[+] Commit Found: {target_repo}/commit/{commit_hash}{reset}")
+                        results[commit_hash].append(f"{response.status_code}") # Append results to dictionary
 
-                    if response.status_code == 200 and deref_commit == True:
-                        tqdm.write(f"{gold}[+] Interesting Commit Found: {target_repo}/commit/{commit_hash}{reset}")
-                    elif response.status_code == 200:
-                        tqdm.write(f"{lightgreen}[+] Commit Found: {target_repo}/commit/{commit_hash}{reset}")
-                    
-                    # Append results to dictionary
-                    results[commit_hash].append(f"{response.status_code},{deref_commit}")
             except requests.exceptions.RequestException as e:
                 with lock:
                     results[commit_hash].append(f"Error: {str(e)}")
@@ -172,7 +178,7 @@ if __name__ == "__main__":
     print("                                                                                                    ")
     print("                                                       @@@@     @@@@                                ")
     print("               @@@@@@@@       @@@@@                 @@@@@@@@@@@@@@@@@@@@                            ")
-    print("           @@@@@@@@@@@@@@@@@@@@@@@@@@%           @@@@@.....:%@@#.....=@@@@@@@@@@@@@@@ @@@@@@@@      ")
+    print("           @@@@@@@@@@@@@@@@@@@@@@@@@@            @@@@@.....:%@@#.....=@@@@@@@@@@@@@@@ @@@@@@@@      ")
     print("          @@@@@+::::+@%=::-#@+::::-*@@@@@@@@@@@@@@@@%*......=**-.....:+**%@@@@@@%@@@@@@@@@@@@@@@    ")
     print("        @@@@#:.......................+@@@@@#:..:#@@+......................-@@#.....#@@@*....=@@@    ")
     print("        @@@*..........................+@@@#......#@-.......................@@=.....=@@@-.....*@@@   ")
@@ -185,17 +191,29 @@ if __name__ == "__main__":
     print("        @@@#:...-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  @@@@@@@@@@@@@@@@@@#:.......-%@@      ")
     print("         @@@@@@@@@@@@  @@@@@@@@@  @@@@@@  @@@@@@@@@@@@@@@@@@    @@@@@@@@@@@@@@@@@:......:=@@@       ")
     print("                                                                             @@@@*:...:=%@@@        ")
-    print("                                                                             @@@@@@%%%@@@@          ")
+    print("                                                                             @@@@@@...@@@@          ")
     print("                                                                               @@@@@@@@@@           ")
     print()
     print("                            Mitty - by E-nzym3 (https://github.com/e-nzym3)                         ")
     print(f"\n{blue}[*] Starting Mitty...{reset}\n")
+
     args = arg_parser()
+
     if args.cleanup: 
         destroy_apis(aws_region)
     else:
-        log_name = time.strftime(f"mitty_{args.repository.replace('/','-')}_%Y-%m-%d_%H-%M-%S.log", time.localtime())
+        ## Check if supplied repository exists and is accessible
+        try:
+            repo_check = check_repo(target_repo)
+            if not repo_check:
+                print(f"{lightred}[!] Error: {target_repo} is not a valid GitHub repository or is inaccessible. Please validate the supplied repo information{reset}")
+                sys.exit(1)
+        except Exception as e:
+            print(f"{lightred}[!] Error: {str(e)}{reset}")
+            sys.exit(1)
+
+        log_name = time.strftime(f"out_mitty_{args.repository.replace('/','-')}_%Y-%m-%d_%H-%M-%S.log", time.localtime())
         with open(log_name, "w") as log_file:
-            log_file.write("Hash,ID,Deref?")
+            log_file.write("Hash,Response Code\n")
             for key, value in request_handler(args.count).items():
                 log_file.write(f"{key},{value}\n")
