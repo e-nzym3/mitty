@@ -57,11 +57,10 @@ options:
 Using "CTRL+C" during execution will initiate a prompt for automatic destruction of all API Gateways. If you force close the script, you can use `-c` to clean-up the gateways afterwards.
 
 <br>
-<br>
 <i>To Do: Add logic to exclude/include commits to forks and to differentiate between dereferenced and normal commits</i>
 
 ## Logging
-Logging is configured to run upon successful completion of the script. The script will populate a log file in the current directory. Log file name is in the format of `out_mitty_<target-repo>_<date>.log`.
+Logging is configured manually within the script and will execute upon closing of each thread. The log file will be created within the current directory. Name of the log file will be in the format of `out_mitty_<target-repo>_<date>.log`.
 
 ## Examples
 ### Starting Brute Force
