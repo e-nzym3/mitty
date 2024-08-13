@@ -81,7 +81,7 @@ def create_api(region, url):
 
 def load_apis(region, url, count):
     apis = []
-    print(f"{blue}[*] Generating API Gateways:{reset}")
+    print(f"{blue}[*] Generating API Gateways in {aws_region} region:{reset}")
     for x in range(count):
         apis.append(create_api(region, url.strip()))
         print(f"[+] Created API Gateway in {region} ID: {apis[x]['api_gateway_id']} - {lightgreen}{apis[x]['proxy_url']} => {url}{reset}")
@@ -140,16 +140,24 @@ def request_handler(count):
             url = f"{api['proxy_url']}commit/{commit_hash}"
             try:
                 response = requests.get(url)
-                with lock:  # Acquire the lock before writing to the results dictionary
-                    results[commit_hash].append(response.status_code)
-                    if response.status_code == 200:
-                        tqdm.write(f"{gold}[+] Commit Found: {target_repo}/commit/{commit_hash}{reset}")
+                deref_commit = False
+                with lock:
+                    if "This commit does not belong to any branch on this repository" in response.text:
+                        deref_commit = True
+
+                    if response.status_code == 200 and deref_commit == True:
+                        tqdm.write(f"{gold}[+] Interesting Commit Found: {target_repo}/commit/{commit_hash}{reset}")
+                    elif response.status_code == 200:
+                        tqdm.write(f"{lightgreen}[+] Commit Found: {target_repo}/commit/{commit_hash}{reset}")
+                    
+                    # Append results to dictionary
+                    results[commit_hash].append(f"{response.status_code},{deref_commit}")
             except requests.exceptions.RequestException as e:
-                with lock:  # Acquire the lock before writing to the results dictionary
+                with lock:
                     results[commit_hash].append(f"Error: {str(e)}")
             pbar.update(1)
 
-    # Using ThreadPoolExecutor to manage concurrent threads
+    ## Using ThreadPoolExecutor to manage concurrent threads
     with concurrent.futures.ThreadPoolExecutor() as executor:
         # Start a new thread for each API and its corresponding bucket
         futures = [executor.submit(fetch_data, api, bucket) for api, bucket in zip(apis, buckets)]
@@ -180,10 +188,14 @@ if __name__ == "__main__":
     print("                                                                             @@@@@@%%%@@@@          ")
     print("                                                                               @@@@@@@@@@           ")
     print()
-    print("                                        Mitty - by E-nzym3 (https://github.com/e-nzym3)             ")
+    print("                            Mitty - by E-nzym3 (https://github.com/e-nzym3)                         ")
     print(f"\n{blue}[*] Starting Mitty...{reset}\n")
     args = arg_parser()
     if args.cleanup: 
         destroy_apis(aws_region)
     else:
-        request_handler(args.count)
+        log_name = time.strftime(f"mitty_{args.repository.replace('/','-')}_%Y-%m-%d_%H-%M-%S.log", time.localtime())
+        with open(log_name, "w") as log_file:
+            log_file.write("Hash,ID,Deref?")
+            for key, value in request_handler(args.count).items():
+                log_file.write(f"{key},{value}\n")
