@@ -79,3 +79,4 @@ Use this in case the program crashed, or you force-closed it and did not have a 
 - Clean-up Fire.py to only include logic that's required
 - Add logic to exclude or include fork commits
 - Add logic to check for pre-existing API gateways and re-use them if needed. If not enough pre-existing ones exist, create n of them until they match the required number.
+- Add logic to check for various strings within responses.
