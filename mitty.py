@@ -5,11 +5,6 @@ import argparse, requests, concurrent.futures, time, threading
 from collections import defaultdict
 from tqdm import tqdm
 
-
-### To Do 
-# - clean-up code formatting
-# - clean-up fire.py to only include logic that's required
-
 ### Globals ###
 target_url = None
 aws_key = None
@@ -79,7 +74,7 @@ def create_api(region, url):
 
 def load_apis(region, url, count):
     apis = []
-    print(f"{blue}[*] Generating API Gateways:")
+    print(f"{blue}[*] Generating API Gateways:{reset}")
     for x in range(count):
         apis.append(create_api(region, url.strip()))
         print(f"[+] Created API Gateway in {region} ID: {apis[x]['api_gateway_id']} - {lightgreen}{apis[x]['proxy_url']} => {url}{reset}")
