@@ -56,7 +56,7 @@ options:
 ## Examples
 ### Starting Brute Force
 ```console
-./mitty -k AIKAxxxxxxxxxxxxxxxx -s xxxxxxxxxxxxxxxxxxxxxxxx -r us-east-1 -n 10 e-nzym3/mitty
+./mitty -k "AIKAxxxxxxxxxxxxxxxx" -s "xxxxxxxxxxxxxxxxxxxxxxxx" -r us-east-1 -n 10 e-nzym3/mitty
 ```
 ### Cleaning up API Gateways
 ```console
