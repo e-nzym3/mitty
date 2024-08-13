@@ -1,22 +1,33 @@
 #!/usr/bin/env python3
 
 from utils.fire import FireProx
-import argparse, requests, concurrent.futures, time, threading,sys
+import argparse, requests, concurrent.futures, time, threading, sys, signal
 from collections import defaultdict
 from tqdm import tqdm
 
-### Globals ###
+########### Globals ###########
+### FireProx Params 
 target_url = None
 aws_key = None
 aws_secret = None
 aws_region = None
 
-### Colors ###
+### Thread control
+executor = None
+quit = False
+
+### Logging
+log_name = ""
+
+### Colors
 reset = '\033[0m'
 lightred = '\033[91m'
 blue = '\033[34m'
 lightgreen = '\033[92m'
 gold = '\033[33m'
+###############################
+
+
 
 ### Functions ###
 def check_repo(url):
@@ -102,21 +113,23 @@ def load_apis(region, url, count):
 
 
 def destroy_apis(region):
-    print(f"{blue}[*] Destroying APIs:{reset}")
+    print(f"\n{blue}[*] Destroying APIs:{reset}")
     args, helpstr = fireprox_args("list", region)
     fp = FireProx(args, helpstr)
     active_apis = fp.list_api()
     
-    pbar = tqdm(total=len(active_apis), desc="Destroying APIs", unit = " apis", position=0, leave=True)
+    pbar = tqdm(total=len(active_apis), desc="Destroying APIs", unit = " apis", position=0, leave=False)
     for a in active_apis:
         result = fp.delete_api(a['id'])
         success = 'Success!' if result else 'Failed!'
         tqdm.write(f'{lightgreen}[+] Destroying {a["id"]} => {success}{reset}')
         pbar.update(1)
+    pbar.close()
 
 
-def request_handler(count):
-    global target_repo
+def request_handler(count, logfile):
+    ## Setting up variables
+    global target_repo, executor
     results = defaultdict(list)
     lock = threading.Lock()
 
@@ -144,37 +157,68 @@ def request_handler(count):
         
         # Move to the next bucket
         start = end
+
     print(f"\n{blue}[*] Starting Brute Force:{reset}")
-    pbar = tqdm(total=total_combinations, unit=" requests", desc="Checking Commits", position=0, leave=True)
+
+    ## Create progress bar
+    pbar = tqdm(total=total_combinations, unit=" requests", desc="Checking Commits", position=0, leave=False)
 
     ## Generate HTTP requests through each "api" through multithreading for each bucket
     def fetch_data(api, bucket):
         for commit_hash in bucket:
+            global quit
+
+            ## Thread Control
+            # Thread break condition to allow for quick exit
+            if quit:
+                pbar.close()
+                time.sleep(0.1)
+                break
+
             url = f"{api['proxy_url']}commit/{commit_hash}"
             try:
                 response = requests.get(url)
                 with lock:
                     if response.status_code == 200:
                         tqdm.write(f"{gold}[+] Commit Found: {target_repo}/commit/{commit_hash}{reset}")
-                        results[commit_hash].append(f"{response.status_code}") # Append results to dictionary
+                        logfile.write(f"{commit_hash},{response.status_code}\n")
+                        #results[commit_hash].append(f"{response.status_code}") # Append results to dictionary
 
             except requests.exceptions.RequestException as e:
                 with lock:
-                    results[commit_hash].append(f"Error: {str(e)}")
+                    logfile.write(f"{commit_hash},Error: {str(e)}\n")
+                    #results[commit_hash].append(f"Error: {str(e)}")
             pbar.update(1)
 
     ## Using ThreadPoolExecutor to manage concurrent threads
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        # Start a new thread for each API and its corresponding bucket
-        futures = [executor.submit(fetch_data, api, bucket) for api, bucket in zip(apis, buckets)]
+    executor = concurrent.futures.ThreadPoolExecutor()
+    futures = [executor.submit(fetch_data, api, bucket) for api, bucket in zip(apis, buckets)]
+    concurrent.futures.wait(futures)
 
-        # Wait for all threads to complete
-        concurrent.futures.wait(futures)
-
-    return results
+    return results # Not currently used
 
 
-if __name__ == "__main__":
+def interrupt_handler(signum, frame):
+    global executor, quit
+
+    time.sleep(0.5) # Waiting .5 seconds so that tpdm can finish updating after the threads stop.
+    print(f"\n{lightred}[!] Ctrl-C was pressed. Killing threads... {reset}")
+    
+    # Kill process
+    quit = True
+    if executor:
+        executor.shutdown(wait=True)
+    destroy_apis(aws_region)
+    print(f"\n\n{blue}[*] Results logged to: {log_name}{reset}\n")
+    sys.exit(1)
+
+
+
+def main():
+    global log_name
+
+    signal.signal(signal.SIGINT, interrupt_handler)
+
     print("                                                                                                    ")
     print("                                                       @@@@     @@@@                                ")
     print("               @@@@@@@@       @@@@@                 @@@@@@@@@@@@@@@@@@@@                            ")
@@ -212,8 +256,13 @@ if __name__ == "__main__":
             print(f"{lightred}[!] Error: {str(e)}{reset}")
             sys.exit(1)
 
+        ## Main execution and output file creation
         log_name = time.strftime(f"out_mitty_{args.repository.replace('/','-')}_%Y-%m-%d_%H-%M-%S.log", time.localtime())
-        with open(log_name, "w") as log_file:
-            log_file.write("Hash,Response Code\n")
-            for key, value in request_handler(args.count).items():
-                log_file.write(f"{key},{value}\n")
+
+        with open(log_name, "w") as logfile:
+            logfile.write("Hash,Response Code\n")
+            request_handler(args.count, logfile)
+            print(f"\n{blue}[*] Results logged to: {log_name}{reset}\n")
+
+if __name__ == "__main__":
+    main()

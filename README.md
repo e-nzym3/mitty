@@ -34,6 +34,7 @@ If you do not have an AWS account, create one as you will need it for configurin
 <br><br>
 Once you have the AWS <b>Access Key</b> and <b>Secret Access key</b>, then you can proceed to using this tool.
 # Usage
+
 ```console
 usage: Mitty [-h] [-t REPOSITORY] -k KEY -s SECRET [-r REGION] [-n COUNT] [-c]
 
@@ -50,11 +51,14 @@ options:
                         AWS region to deploy gateways in (default = us-east-1)
   -n COUNT, --count COUNT
                         Number of concurrent streams use (default = 1)
-  -c, --cleanup         Cleanup APIs from AWS
+  -c, --cleanup         Cleanup APIs from AWS (in case you had to force close the program)
 ```
+
+Using "CTRL+C" during execution will initiate a prompt for automatic destruction of all API Gateways. If you force close the script, you can use `-c` to clean-up the gateways afterwards.
+
 <br>
 <br>
-_To Do: Add logic to exclude/include commits to forks and to differentiate between dereferenced and normal commits_
+<i>To Do: Add logic to exclude/include commits to forks and to differentiate between dereferenced and normal commits</i>
 
 ## Logging
 Logging is configured to run upon successful completion of the script. The script will populate a log file in the current directory. Log file name is in the format of `out_mitty_<target-repo>_<date>.log`.
@@ -65,6 +69,7 @@ Logging is configured to run upon successful completion of the script. The scrip
 ./mitty -k "AIKAxxxxxxxxxxxxxxxx" -s "xxxxxxxxxxxxxxxxxxxxxxxx" -r us-east-1 -n 10 -t "e-nzym3/mitty"
 ```
 ### Cleaning up API Gateways
+Use this in case the program crashed, or you force-closed it and did not have a chance to clean up the gateways.
 ```console
 ./mitty -k "AIKAxxxxxxxxxxxxxxxx" -s "xxxxxxxxxxxxxxxxxxxxxxxx" -c -r us-east-1
 ```
@@ -73,6 +78,5 @@ Logging is configured to run upon successful completion of the script. The scrip
 # To Do List
 - Clean-up Code Formatting
 - Clean-up Fire.py to only include logic that's required
-- Add logic that destroys APIs on CTRL+C, just like in CredMaster
 - Add logic to exclude or include fork commits
 - Add logic to check for pre-existing API gateways and re-use them if needed. If not enough pre-existing ones exist, create n of them until they match the required number.
