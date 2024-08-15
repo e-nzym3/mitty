@@ -31,7 +31,7 @@ sudo python3 -m pip install -r requirements.txt
 ```
 You can also do it through `pipenv` if you prefer.
 # Config
-If you do not have an AWS account, create one as you will need it for configuring FireProx. Also, follow this [blog](https://bond-o.medium.com/aws-pass-through-proxy-84f1f7fa4b4b) if you do not know how to create AWS keys for FireProx.
+If you do not have an AWS account, create one as you will need it for standing up API Gateways via Mitty. You can follow my [blog post](https://enzym3.io/introducing-mitty/) for instructions on how to achieve this.
 <br><br>
 Once you have the AWS <b>Access Key</b> and <b>Secret Access key</b>, then you can proceed to using this tool.
 # Usage
