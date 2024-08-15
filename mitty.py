@@ -25,6 +25,9 @@ lightred = '\033[91m'
 blue = '\033[34m'
 lightgreen = '\033[92m'
 gold = '\033[33m'
+
+### Word Match
+matches = []
 ###############################
 
 
@@ -43,7 +46,7 @@ def check_repo(url):
 
 def arg_parser():
     # Import globals and regions comparison table
-    global target_repo, aws_key, aws_secret, aws_region
+    global target_repo, aws_key, aws_secret, aws_region, matches
     regions = [
 			"us-east-2", "us-east-1","us-west-1","us-west-2","eu-west-3",
 			"ap-northeast-1","ap-northeast-2","ap-south-1",
@@ -58,12 +61,14 @@ def arg_parser():
     parser.add_argument("-r", "--region", type = str, required = False, default = "us-east-1", help = "AWS region to deploy gateways in (default = us-east-1)")
     parser.add_argument("-n", "--count", type = int, required = False, default = 5, help = "Number of concurrent streams use (default = 5)")
     parser.add_argument("-c", "--cleanup", action = "store_true", default = False, help = "Cleanup APIs from AWS")
+    parser.add_argument("-m", "--match", type = str, required = False, help = "Comma separated list of words to look for in commit pages (e.g., \"key,secret,password\")")
 
     # Process args to appropriate global variables
     args = parser.parse_args()
     target_repo = f"https://github.com/{args.repository}"
     aws_key = args.key
     aws_secret = args.secret
+    matches = args.match.split(",") if args.match else None
 
     if args.region not in regions:
         print(f"{lightred}[!] Supplied region \"{args.region}\" is not valid! Please select one of the following:")
@@ -179,14 +184,20 @@ def request_handler(count, logfile):
             try:
                 response = requests.get(url)
                 with lock:
+                    if response.status_code == 200 and matches: # If we have matches and the commit is found
+                        for match in matches:
+                            if match in response.text:
+                                tqdm.write(f"{gold}[+] Commit with Word Match Found: {target_repo}/commit/{commit_hash}{reset}")
+                                logfile.write(f"{commit_hash}, {response.status_code}, {match}\n")
+                                #results[commit_hash].append(f"{response.status_code}") # Append results to dictionary
                     if response.status_code == 200:
-                        tqdm.write(f"{gold}[+] Commit Found: {target_repo}/commit/{commit_hash}{reset}")
-                        logfile.write(f"{commit_hash},{response.status_code}\n")
+                        tqdm.write(f"{lightgreen}[+] Commit Found: {target_repo}/commit/{commit_hash}{reset}")
+                        logfile.write(f"{commit_hash},{response.status_code},N/A\n")
                         #results[commit_hash].append(f"{response.status_code}") # Append results to dictionary
 
             except requests.exceptions.RequestException as e:
                 with lock:
-                    logfile.write(f"{commit_hash},Error: {str(e)}\n")
+                    logfile.write(f"{commit_hash},Error: {str(e)},N/A\n")
                     #results[commit_hash].append(f"Error: {str(e)}")
             pbar.update(1)
 
@@ -260,7 +271,7 @@ def main():
         log_name = time.strftime(f"out_mitty_{args.repository.replace('/','-')}_%Y-%m-%d_%H-%M-%S.log", time.localtime())
 
         with open(log_name, "w") as logfile:
-            logfile.write("Hash,Response Code\n")
+            logfile.write("Hash,Response Code,Word Match\n")
             request_handler(args.count, logfile)
             print(f"\n{blue}[*] Results logged to: {log_name}{reset}\n")
 

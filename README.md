@@ -3,6 +3,7 @@
   <img src="./logo.png" width="50%">
   <br>
   <b>Github Commit Hash Bruteforce Utility</b>
+  <a href="https://enzym3.io/introducing-mitty/">Blog Post</a>
 </p>
 <hr>
 
