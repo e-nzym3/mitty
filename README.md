@@ -58,9 +58,9 @@ options:
 ```
 
 Using "CTRL+C" during execution will initiate a prompt for automatic destruction of all API Gateways. If you force close the script, you can use `-c` to clean-up the gateways afterwards.
-<br>
+<br><br>
 The word match function works on regex basis and is case insensitive. It searches through the "body" HTML element of the Github Commit page. As such, keep in mind that there may be some matches that occur on parameters within the raw HTML doc, not just text that is rendered on the screen.
-<br>
+<br><br>
 <i>To Do: Add logic to exclude/include commits to forks and to differentiate between dereferenced and normal commits</i>
 
 ## Logging
