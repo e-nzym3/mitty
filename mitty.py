@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from utils.fire import FireProx
+from utils import parser
 import argparse, requests, concurrent.futures, time, threading, sys, signal, re
 from collections import defaultdict
 from tqdm import tqdm
@@ -16,6 +17,7 @@ aws_region = None
 # Thread control
 executor = None
 quit = False
+kill = 0
 
 # Logging
 log_name = ""
@@ -82,10 +84,18 @@ def arg_parser():
         help='The target GitHub repository in the format "USER/REPO" (e.g., e-nzym3/mitty)',
     )
     parser.add_argument(
-        "-k", "--key", type=str, required=True, help="AWS key for FireProx"
+        "-k",
+        "--key",
+        type=str,
+        required=False,
+        help="AWS key for FireProx",
     )
     parser.add_argument(
-        "-s", "--secret", type=str, required=True, help="AWS secret key for FireProx"
+        "-s",
+        "--secret",
+        type=str,
+        required=False,
+        help="AWS secret key for FireProx",
     )
     parser.add_argument(
         "-r",
@@ -117,6 +127,19 @@ def arg_parser():
         required=False,
         help='Comma separated list of words to look for in commit pages (e.g., "key,secret,password")',
     )
+    parser.add_argument(
+        "-p",
+        "--parse",
+        action="store_true",
+        default=False,
+        help="Parse found commits to check which were deleted",
+    )
+    parser.add_argument(
+        "--selenium-test",
+        action="store_true",
+        default=False,
+        help="Test Selenium to ensure it is working as intended prior to parsing",
+    )
 
     # Process args to appropriate global variables
     args = parser.parse_args()
@@ -132,8 +155,8 @@ def arg_parser():
     else:
         aws_region = args.region
 
-    if args.cleanup == False and not args.repository:
-        parser.error(f"{lightred}[!] --repository is required if --cleanup is not set")
+    if args.cleanup == False and not args.selenium_test and not args.repository:
+        parser.error(f"{lightred}[!] --repository is required if --cleanup or --selenium-test is not set")  # fmt: skip
 
     return args
 
@@ -203,7 +226,7 @@ def destroy_apis(region):
 def request_handler(count, logfile):
     # Setting up variables
     global target_repo, executor
-    results = defaultdict(list)
+    results = []
     lock = threading.Lock()
 
     # Create API gateways for requests
@@ -274,10 +297,12 @@ def request_handler(count, logfile):
                             if match:
                                 tqdm.write(f"{gold}[+] Commit with '{match.group()}' Match Found: {target_repo}/commit/{commit_hash}{reset}")  # fmt: skip
                                 logfile.write(f"{commit_hash}, {response.status_code}, {match.group()}\n")  # fmt: skip
+                                results.append(commit_hash)
                                 continue
 
                         tqdm.write(f"{lightgreen}[+] Commit Found: {target_repo}/commit/{commit_hash}{reset}")  # fmt:skip
                         logfile.write(f"{commit_hash},{response.status_code},N/A\n")  # fmt:skip
+                        results.append(commit_hash)
 
             except requests.exceptions.RequestException as e:
                 with lock:
@@ -292,15 +317,22 @@ def request_handler(count, logfile):
     ]
     concurrent.futures.wait(futures)
 
-    return results  # Not currently used
+    return results
 
 
 def interrupt_handler(signum, frame):
-    global executor, quit
+    global executor, quit, kill
+
+    # Force kill program if CTRL + C was pressed twice
+    kill += 1
+    if kill >= 2:
+        print(f"\n{lightred}[!] Force Exiting...{reset}")
+        sys.exit(1)
+
+    print(f"\n{lightred}[!] Ctrl-C was pressed. Killing threads... Press again to force close. {reset}")  # fmt: skip
 
     # Waiting .5 seconds so that tpdm can finish updating after the threads stop.
     time.sleep(0.5)
-    print(f"\n{lightred}[!] Ctrl-C was pressed. Killing threads... {reset}")
 
     # Kill process
     quit = True
@@ -347,15 +379,20 @@ def main():
 
     if args.cleanup:
         destroy_apis(aws_region)
-    else:
 
+    elif args.selenium_test:
+        try:
+            parser.selenium_test("https://google.com")
+        except Exception as e:
+            print(f"{lightred}[!] Selenium test failed: {e}{reset}")
+            sys.exit(1)
+
+    else:
         ## Check if supplied repository exists and is accessible
         try:
             repo_check = check_repo(target_repo)
             if not repo_check:
-                print(
-                    f"{lightred}[!] Error: {target_repo} is not a valid GitHub repository or is inaccessible. Please validate the supplied repo information{reset}"
-                )
+                print(f"{lightred}[!] Error: {target_repo} is not a valid GitHub repository or is inaccessible. Please validate the supplied repo information{reset}")  # fmt: skip
                 sys.exit(1)
         except Exception as e:
             print(f"{lightred}[!] Error: {str(e)}{reset}")
@@ -369,8 +406,14 @@ def main():
 
         with open(log_name, "w") as logfile:
             logfile.write("Hash,Response Code,Matched Word\n")
-            request_handler(args.count, logfile)
+            hashes = request_handler(args.count, logfile)
             print(f"\n{blue}[*] Results logged to: {log_name}{reset}\n")
+            destroy_apis(aws_region)
+
+            # If parsing is requested via arguments, run this
+            if args.parse:
+                print(f"\n{blue}[*] Parsing results...{reset}")
+                parser.parser(args.repository, hashes, log_name)
 
 
 if __name__ == "__main__":
