@@ -74,7 +74,7 @@ The parsing log file will have the same name as above, but will end in `_parsed`
 ## Parsing
 The parsing feature utilizes Selenium to determine whether the found commit has been deleted or not. This is simply because of how Github decides to mark these commits as such. Github uses JavaScript to render the "" alert, so Selenium is required to have each commit page rendered appropriately and then checked for presence of the message.
 <br><br>
-Selenium can be pretty buggy so I included the "--selenium-test" argument to test your configuration by having it run on "https://google.com". This may run a while, especially with timeout issues. So be patient.
+Selenium can be pretty buggy so I included the `--selenium-test` argument to test your configuration by having it run on "https://google.com". This may run a while, especially with timeout issues. So be patient.
 
 ## Examples
 ### Starting a Standard Brute Force
